@@ -1,0 +1,1564 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2487.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 12.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000}
+    p.p2 {margin: 0.0px 0.0px 12.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000; min-height: 14.0px}
+    span.s1 {font-kerning: none}
+  </style>
+</head>
+<body>
+<p class="p1"><span class="s1">import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';</span></p>
+<p class="p1"><span class="s1">import {</span></p>
+<p class="p1"><span class="s1">MessageCircle, Image as ImageIcon, Globe, DollarSign,</span></p>
+<p class="p1"><span class="s1">Cpu, Wifi, Battery, X, Minus, Square,</span></p>
+<p class="p1"><span class="s1">Send, Heart, AlertCircle, Lock, Terminal, Activity, Sparkles, Loader, User,</span></p>
+<p class="p1"><span class="s1">ShoppingBag, Package, BookOpen, AlertOpen, AlertTriangle, Utensils, Stethoscope, GraduationCap,</span></p>
+<p class="p1"><span class="s1">Smartphone, Camera, Zap, TrendingUp, Settings, Move, Image as ImgIcon</span></p>
+<p class="p1"><span class="s1">} from 'lucide-react';</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- Firebase 导入 ---</span></p>
+<p class="p1"><span class="s1">import { initializeApp } from 'firebase/app';</span></p>
+<p class="p1"><span class="s1">import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';</span></p>
+<p class="p1"><span class="s1">import {</span></p>
+<p class="p1"><span class="s1">getFirestore, doc, onSnapshot, setDoc, updateDoc, FieldValue</span></p>
+<p class="p1"><span class="s1">} from 'firebase/firestore';</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- API &amp; Config ---</span></p>
+<p class="p1"><span class="s1">const apiKey = ""; // 运行时环境会自动注入 API Key</span></p>
+<p class="p1"><span class="s1">const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';</span></p>
+<p class="p1"><span class="s1">const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- 游戏数据常量 ---</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const SHOP_ITEMS = [</span></p>
+<p class="p1"><span class="s1">{ id: 'socks_white', category: 'clothes', name: '纯白棉袜', price: 25, risk: 2, desc: '普通的学生棉袜，清纯风。' },</span></p>
+<p class="p1"><span class="s1">{ id: 'stockings_black', category: 'clothes', name: '极薄黑丝', price: 68, risk: 5, desc: '透肉度极高，非常显腿型。' },</span></p>
+<p class="p1"><span class="s1">{ id: 'uniform_jk', category: 'clothes', name: '格裙制服', price: 128, risk: 3, desc: '经典的校园风格。' },</span></p>
+<p class="p1"><span class="s1">{ id: 'lingerie_lace', category: 'clothes', name: '蕾丝内衣', price: 299, risk: 8, desc: '设计大胆，主要用于私密拍摄。' },</span></p>
+<p class="p1"><span class="s1">{ id: 'maid_outfit', category: 'clothes', name: '女仆装', price: 199, risk: 6, desc: '带有蕾丝边的经典女仆装。' },</span></p>
+<p class="p1"><span class="s1">{ id: 'cat_ears', category: 'props', name: '猫耳发箍', price: 35, risk: 2, desc: '增加可爱的感觉。' },</span></p>
+<p class="p1"><span class="s1">{ id: 'ring_light', category: 'electronics', name: '直播补光灯', price: 150, risk: 0, desc: '提升照片光感，涨粉速度+10%。' },</span></p>
+<p class="p1"><span class="s1">{ id: 'iphone_new', category: 'electronics', name: 'Pro Max 手机', price: 8999, risk: 0, desc: '高清镜头，大幅提升照片质量。' },</span></p>
+<p class="p1"><span class="s1">];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const WALLPAPERS = [</span></p>
+<p class="p1"><span class="s1">{ id: 'default', name: '默认蓝粉', style: 'bg-gradient-to-br from-blue-300 to-pink-200' },</span></p>
+<p class="p1"><span class="s1">{ id: 'dark', name: '深邃夜空', style: 'bg-gray-900' },</span></p>
+<p class="p1"><span class="s1">{ id: 'retro', name: '复古波普', style: 'bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-indigo-200 via-slate-600 to-indigo-200' },</span></p>
+<p class="p1"><span class="s1">{ id: 'cyber', name: '赛博故障', style: 'bg-gradient-to-r from-purple-500 to-pink-500' },</span></p>
+<p class="p1"><span class="s1">];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const NPC_PERSONAS = {</span></p>
+<p class="p1"><span class="s1">creep: `你是一个网络上的好色猥琐男，想买原味内衣或定制视频。你会用挑逗、急切的语气。如果玩家开价太高你会砍价，如果价格合适你会立刻转账。`,</span></p>
+<p class="p1"><span class="s1">agent: `你是灰色产业链中介。你说话由于利益驱动，总是诱导玩家做更出格的事（比如线下、露脸）。`,</span></p>
+<p class="p1"><span class="s1">mom: `你是传统的母亲，关心女儿的身体和学习，不知道女儿在做什么。说话絮叨。`,</span></p>
+<p class="p1"><span class="s1">fan: `你是普通粉丝，说话比较正常，单纯夸赞。`</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const DEFAULT_PORTFOLIO = {</span></p>
+<p class="p1"><span class="s1">cash: 1200.00, // 初始现金</span></p>
+<p class="p1"><span class="s1">stock: 0.00,</span></p>
+<p class="p1"><span class="s1">crypto: 0.00,</span></p>
+<p class="p1"><span class="s1">nfts: [],</span></p>
+<p class="p1"><span class="s1">history: []</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const FOOD_OPTIONS = [</span></p>
+<p class="p1"><span class="s1">{ id: 'burger', name: '外卖汉堡 (快速)', cost: 30, healthGain: 10, academicsChange: -1, timeCost: 30 },</span></p>
+<p class="p1"><span class="s1">{ id: 'home_meal', name: '健康家常菜 (均衡)', cost: 60, healthGain: 25, academicsChange: 0, timeCost: 60 },</span></p>
+<p class="p1"><span class="s1">{ id: 'sushi', name: '高档日料 (昂贵)', cost: 120, healthGain: 40, academicsChange: 2, timeCost: 90 },</span></p>
+<p class="p1"><span class="s1">];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const HOSPITAL_OPTIONS = [</span></p>
+<p class="p1"><span class="s1">{ id: 'checkup', name: '基础体检', cost: 100, healthGain: 10, sanityGain: 5, exposureRisk: 0, timeCost: 30 },</span></p>
+<p class="p1"><span class="s1">{ id: 'therapy', name: '心理咨询', cost: 500, healthGain: 0, sanityGain: 30, exposureRisk: 5, timeCost: 120 },</span></p>
+<p class="p1"><span class="s1">{ id: 'surgery', name: '微整形 (高风险)', cost: 2000, healthGain: 50, sanityGain: 50, exposureRisk: 20, timeCost: 180 },</span></p>
+<p class="p1"><span class="s1">];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const STUDY_OPTIONS = [</span></p>
+<p class="p1"><span class="s1">{ id: 'self', name: '自习', cost: 0, academicsGain: 10, cashCost: 0, timeCost: 60 },</span></p>
+<p class="p1"><span class="s1">{ id: 'online', name: '网课', cost: 50, academicsGain: 20, cashCost: 50, timeCost: 90 },</span></p>
+<p class="p1"><span class="s1">{ id: 'tutor', name: '私教', cost: 200, academicsGain: 40, cashCost: 200, timeCost: 120 },</span></p>
+<p class="p1"><span class="s1">];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- API 调用函数 ---</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 专用于获取 JSON 结构化数据的 LLM 调用 (用于 SweetGram 发帖)</span></p>
+<p class="p1"><span class="s1">async function callGeminiJson(prompt, systemInstruction = "") {</span></p>
+<p class="p1"><span class="s1">const MAX_RETRIES = 3;</span></p>
+<p class="p1"><span class="s1">let delay = 1000;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">for (let i = 0; i &lt; MAX_RETRIES; i++) {</span></p>
+<p class="p1"><span class="s1">try {</span></p>
+<p class="p1"><span class="s1">const response = await fetch(</span></p>
+<p class="p1"><span class="s1">`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,</span></p>
+<p class="p1"><span class="s1">{</span></p>
+<p class="p1"><span class="s1">method: 'POST',</span></p>
+<p class="p1"><span class="s1">headers: { 'Content-Type': 'application/json' },</span></p>
+<p class="p1"><span class="s1">body: JSON.stringify({</span></p>
+<p class="p1"><span class="s1">contents: [{ parts: [{ text: prompt }] }],</span></p>
+<p class="p1"><span class="s1">systemInstruction: { parts: [{ text: systemInstruction }] },</span></p>
+<p class="p1"><span class="s1">generationConfig: { responseMimeType: "application/json" }</span></p>
+<p class="p1"><span class="s1">}),</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">if (!response.ok) throw new Error(`HTTP ${response.status}`);</span></p>
+<p class="p1"><span class="s1">const data = await response.json();</span></p>
+<p class="p1"><span class="s1">const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;</span></p>
+<p class="p1"><span class="s1">if (jsonText) {</span></p>
+<p class="p1"><span class="s1">return JSON.parse(jsonText);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">return {};</span></p>
+<p class="p1"><span class="s1">} catch (error) {</span></p>
+<p class="p1"><span class="s1">console.warn(`Gemini JSON API Error (Attempt ${i + 1}):`, error);</span></p>
+<p class="p1"><span class="s1">if (i &lt; MAX_RETRIES - 1) {</span></p>
+<p class="p1"><span class="s1">await new Promise(resolve =&gt; setTimeout(resolve, delay));</span></p>
+<p class="p1"><span class="s1">delay *= 2;</span></p>
+<p class="p1"><span class="s1">} else {</span></p>
+<p class="p1"><span class="s1">console.error("Gemini JSON API failed after all retries.");</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">return null;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 专用于获取纯文本回复的 LLM 调用 (用于 K-Talk 聊天)</span></p>
+<p class="p1"><span class="s1">async function callGeminiText(prompt, systemInstruction = "") {</span></p>
+<p class="p1"><span class="s1">const MAX_RETRIES = 3;</span></p>
+<p class="p1"><span class="s1">let delay = 1000;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">for (let i = 0; i &lt; MAX_RETRIES; i++) {</span></p>
+<p class="p1"><span class="s1">try {</span></p>
+<p class="p1"><span class="s1">const response = await fetch(</span></p>
+<p class="p1"><span class="s1">`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,</span></p>
+<p class="p1"><span class="s1">{</span></p>
+<p class="p1"><span class="s1">method: 'POST',</span></p>
+<p class="p1"><span class="s1">headers: { 'Content-Type': 'application/json' },</span></p>
+<p class="p1"><span class="s1">body: JSON.stringify({</span></p>
+<p class="p1"><span class="s1">contents: [{ parts: [{ text: prompt }] }],</span></p>
+<p class="p1"><span class="s1">systemInstruction: { parts: [{ text: systemInstruction }] }</span></p>
+<p class="p1"><span class="s1">}),</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">if (!response.ok) throw new Error(`HTTP ${response.status}`);</span></p>
+<p class="p1"><span class="s1">const data = await response.json();</span></p>
+<p class="p1"><span class="s1">// 直接返回文本内容</span></p>
+<p class="p1"><span class="s1">return data.candidates?.[0]?.content?.parts?.[0]?.text || "";</span></p>
+<p class="p1"><span class="s1">} catch (error) {</span></p>
+<p class="p1"><span class="s1">console.warn(`Gemini Text API Error (Attempt ${i + 1}):`, error);</span></p>
+<p class="p1"><span class="s1">if (i &lt; MAX_RETRIES - 1) {</span></p>
+<p class="p1"><span class="s1">await new Promise(resolve =&gt; setTimeout(resolve, delay));</span></p>
+<p class="p1"><span class="s1">delay *= 2;</span></p>
+<p class="p1"><span class="s1">} else {</span></p>
+<p class="p1"><span class="s1">console.error("Gemini Text API failed after all retries.");</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">return null;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">async function callImagen(prompt) {</span></p>
+<p class="p1"><span class="s1">const MAX_RETRIES = 3;</span></p>
+<p class="p1"><span class="s1">let delay = 1000;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">for (let i = 0; i &lt; MAX_RETRIES; i++) {</span></p>
+<p class="p1"><span class="s1">try {</span></p>
+<p class="p1"><span class="s1">const response = await fetch(</span></p>
+<p class="p1"><span class="s1">`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`,</span></p>
+<p class="p1"><span class="s1">{</span></p>
+<p class="p1"><span class="s1">method: 'POST',</span></p>
+<p class="p1"><span class="s1">headers: { 'Content-Type': 'application/json' },</span></p>
+<p class="p1"><span class="s1">body: JSON.stringify({</span></p>
+<p class="p1"><span class="s1">instances: [{ prompt: "Pixel art style, " + prompt }],</span></p>
+<p class="p1"><span class="s1">parameters: { sampleCount: 1 }</span></p>
+<p class="p1"><span class="s1">}),</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">if (!response.ok) throw new Error(`Imagen HTTP ${response.status}`);</span></p>
+<p class="p1"><span class="s1">const data = await response.json();</span></p>
+<p class="p1"><span class="s1">if (data.predictions &amp;&amp; data.predictions[0] &amp;&amp; data.predictions[0].bytesBase64Encoded) {</span></p>
+<p class="p1"><span class="s1">return `data:image/png;base64,${data.predictions[0].bytesBase64Encoded}`;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">return null;</span></p>
+<p class="p1"><span class="s1">} catch (error) {</span></p>
+<p class="p1"><span class="s1">console.warn(`Imagen API Error (Attempt ${i + 1}):`, error);</span></p>
+<p class="p1"><span class="s1">if (i &lt; MAX_RETRIES - 1) {</span></p>
+<p class="p1"><span class="s1">await new Promise(resolve =&gt; setTimeout(resolve, delay));</span></p>
+<p class="p1"><span class="s1">delay *= 2;</span></p>
+<p class="p1"><span class="s1">} else {</span></p>
+<p class="p1"><span class="s1">console.error("Imagen API failed after all retries.");</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">return null;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- 主组件 ---</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">export default function PixelOS() {</span></p>
+<p class="p1"><span class="s1">// --- 状态定义 ---</span></p>
+<p class="p1"><span class="s1">const [db, setDb] = useState(null);</span></p>
+<p class="p1"><span class="s1">const [auth, setAuth] = useState(null);</span></p>
+<p class="p1"><span class="s1">const [userId, setUserId] = useState(null);</span></p>
+<p class="p1"><span class="s1">const [dbLoading, setDbLoading] = useState(true);</span></p>
+<p class="p1"><span class="s1">const [error, setError] = useState(null);</span></p>
+<p class="p1"><span class="s1">const [isAuthReady, setIsAuthReady] = useState(false);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// Firestore 实时同步状态 (包含 cash, stock, crypto, nfts)</span></p>
+<p class="p1"><span class="s1">const [portfolio, setPortfolio] = useState(DEFAULT_PORTFOLIO);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 模拟市场状态 (非持久化)</span></p>
+<p class="p1"><span class="s1">const [stockPrice, setStockPrice] = useState(100.00);</span></p>
+<p class="p1"><span class="s1">const [cryptoPrice, setCryptoPrice] = useState(500.00);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 游戏核心状态 (时间、粉丝、健康等)</span></p>
+<p class="p1"><span class="s1">const [gameState, setGameState] = useState({</span></p>
+<p class="p1"><span class="s1">day: 1,</span></p>
+<p class="p1"><span class="s1">hour: 18,</span></p>
+<p class="p1"><span class="s1">minute: 0,</span></p>
+<p class="p1"><span class="s1">fans: 0,</span></p>
+<p class="p1"><span class="s1">sanity: 100,</span></p>
+<p class="p1"><span class="s1">exposure: 0,</span></p>
+<p class="p1"><span class="s1">health: 90,</span></p>
+<p class="p1"><span class="s1">academics: 85,</span></p>
+<p class="p1"><span class="s1">inventory: [], // 不通过 Firestore 持久化</span></p>
+<p class="p1"><span class="s1">gallery: [], // 不通过 Firestore 持久化</span></p>
+<p class="p1"><span class="s1">market: { trends: { stock: 0, crypto: 0 } }, // 仅保存趋势</span></p>
+<p class="p1"><span class="s1">settings: { wallpaper: 'default' },</span></p>
+<p class="p1"><span class="s1">icons: [</span></p>
+<p class="p1"><span class="s1">{ id: 'browser', x: 20, y: 20 },</span></p>
+<p class="p1"><span class="s1">{ id: 'chat', x: 20, y: 110 },</span></p>
+<p class="p1"><span class="s1">{ id: 'shop', x: 20, y: 200 },</span></p>
+<p class="p1"><span class="s1">{ id: 'food', x: 20, y: 290 },</span></p>
+<p class="p1"><span class="s1">{ id: 'hospital', x: 110, y: 20 },</span></p>
+<p class="p1"><span class="s1">{ id: 'study', x: 110, y: 110 },</span></p>
+<p class="p1"><span class="s1">{ id: 'stonks', x: 110, y: 200 },</span></p>
+<p class="p1"><span class="s1">{ id: 'bank', x: 110, y: 290 }, // 替换 finder 为 bank</span></p>
+<p class="p1"><span class="s1">{ id: 'finder', x: 200, y: 20 }, // 移动 finder</span></p>
+<p class="p1"><span class="s1">{ id: 'settings', x: 200, y: 110 }, // 移动 settings</span></p>
+<p class="p1"><span class="s1">],</span></p>
+<p class="p1"><span class="s1">gameover: false,</span></p>
+<p class="p1"><span class="s1">ending: null,</span></p>
+<p class="p1"><span class="s1">dailyPaid: false,</span></p>
+<p class="p1"><span class="s1">loaded: false</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const [windows, setWindows] = useState({</span></p>
+<p class="p1"><span class="s1">chat: { isOpen: false, z: 1, title: "K-Talk", minimized: false },</span></p>
+<p class="p1"><span class="s1">browser: { isOpen: true, z: 2, title: "Safari", minimized: false },</span></p>
+<p class="p1"><span class="s1">shop: { isOpen: false, z: 3, title: "Amazone", minimized: false },</span></p>
+<p class="p1"><span class="s1">bank: { isOpen: false, z: 4, title: "Wallet", minimized: false },</span></p>
+<p class="p1"><span class="s1">finder: { isOpen: false, z: 5, title: "Finder", minimized: false },</span></p>
+<p class="p1"><span class="s1">food: { isOpen: false, z: 6, title: "饱了么", minimized: false },</span></p>
+<p class="p1"><span class="s1">hospital: { isOpen: false, z: 7, title: "平安健康", minimized: false },</span></p>
+<p class="p1"><span class="s1">study: { isOpen: false, z: 8, title: "学习通", minimized: false },</span></p>
+<p class="p1"><span class="s1">stonks: { isOpen: false, z: 9, title: "Stonks 投资", minimized: false },</span></p>
+<p class="p1"><span class="s1">settings: { isOpen: false, z: 10, title: "系统设置", minimized: false },</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const [notifications, setNotifications] = useState([]);</span></p>
+<p class="p1"><span class="s1">const [chats, setChats] = useState([</span></p>
+<p class="p1"><span class="s1">{ id: 'mom', name: '妈妈', avatar: '👩', type: 'mom', msgs: [{ type: 'in', text: '生活费省着点花，好好学习。' }] },</span></p>
+<p class="p1"><span class="s1">{ id: 'agent', name: '传媒星探', avatar: '🕵️', type: 'agent', msgs: [{ type: 'in', text: '想不想利用课余时间赚大钱？我看你底子很好。' }] },</span></p>
+<p class="p1"><span class="s1">]);</span></p>
+<p class="p1"><span class="s1">const [currentChatId, setCurrentChatId] = useState('mom');</span></p>
+<p class="p1"><span class="s1">const [posts, setPosts] = useState([]);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- 身份验证和 Firestore 初始化 ---</span></p>
+<p class="p1"><span class="s1">useEffect(() =&gt; {</span></p>
+<p class="p1"><span class="s1">if (Object.keys(firebaseConfig).length === 0) return;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">try {</span></p>
+<p class="p1"><span class="s1">const app = initializeApp(firebaseConfig);</span></p>
+<p class="p1"><span class="s1">const firestoreDb = getFirestore(app);</span></p>
+<p class="p1"><span class="s1">const firebaseAuth = getAuth(app);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">setDb(firestoreDb);</span></p>
+<p class="p1"><span class="s1">setAuth(firebaseAuth);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const unsubscribeAuth = onAuthStateChanged(firebaseAuth, async (user) =&gt; {</span></p>
+<p class="p1"><span class="s1">if (user) {</span></p>
+<p class="p1"><span class="s1">setUserId(user.uid);</span></p>
+<p class="p1"><span class="s1">} else {</span></p>
+<p class="p1"><span class="s1">// 如果没有用户，尝试登录</span></p>
+<p class="p1"><span class="s1">try {</span></p>
+<p class="p1"><span class="s1">if (typeof __initial_auth_token !== 'undefined' &amp;&amp; __initial_auth_token) {</span></p>
+<p class="p1"><span class="s1">await signInWithCustomToken(firebaseAuth, __initial_auth_token);</span></p>
+<p class="p1"><span class="s1">} else {</span></p>
+<p class="p1"><span class="s1">await signInAnonymously(firebaseAuth);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">} catch (e) {</span></p>
+<p class="p1"><span class="s1">console.error("Firebase 登录失败:", e);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">setIsAuthReady(true); // 无论是否登录成功，auth 流程已完成</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return () =&gt; unsubscribeAuth();</span></p>
+<p class="p1"><span class="s1">} catch (e) {</span></p>
+<p class="p1"><span class="s1">console.error("Firebase 初始化失败:", e);</span></p>
+<p class="p1"><span class="s1">setError("Firebase 初始化失败。");</span></p>
+<p class="p1"><span class="s1">setDbLoading(false);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}, []);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- Firestore 投资组合实时监听 ---</span></p>
+<p class="p1"><span class="s1">useEffect(() =&gt; {</span></p>
+<p class="p1"><span class="s1">if (!db || !userId || !isAuthReady) return;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const portfolioDocRef = doc(db,</span></p>
+<p class="p1"><span class="s1">'artifacts', appId,</span></p>
+<p class="p1"><span class="s1">'users', userId,</span></p>
+<p class="p1"><span class="s1">'portfolio', 'data'</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const unsubscribeSnapshot = onSnapshot(portfolioDocRef, (docSnap) =&gt; {</span></p>
+<p class="p1"><span class="s1">if (docSnap.exists()) {</span></p>
+<p class="p1"><span class="s1">const data = docSnap.data();</span></p>
+<p class="p1"><span class="s1">setPortfolio(prev =&gt; ({</span></p>
+<p class="p1"><span class="s1">...DEFAULT_PORTFOLIO,</span></p>
+<p class="p1"><span class="s1">...data,</span></p>
+<p class="p1"><span class="s1">cash: parseFloat(data.cash || 0),</span></p>
+<p class="p1"><span class="s1">stock: parseFloat(data.stock || 0),</span></p>
+<p class="p1"><span class="s1">crypto: parseFloat(data.crypto || 0),</span></p>
+<p class="p1"><span class="s1">nfts: Array.isArray(data.nfts) ? data.nfts : [],</span></p>
+<p class="p1"><span class="s1">history: Array.isArray(data.history) ? data.history : [],</span></p>
+<p class="p1"><span class="s1">}));</span></p>
+<p class="p1"><span class="s1">setDbLoading(false);</span></p>
+<p class="p1"><span class="s1">} else {</span></p>
+<p class="p1"><span class="s1">console.log("No portfolio found. Initializing...");</span></p>
+<p class="p1"><span class="s1">setDoc(portfolioDocRef, DEFAULT_PORTFOLIO)</span></p>
+<p class="p1"><span class="s1">.then(() =&gt; setDbLoading(false))</span></p>
+<p class="p1"><span class="s1">.catch(e =&gt; { console.error("Error initializing portfolio:", e); setDbLoading(false); });</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}, (e) =&gt; {</span></p>
+<p class="p1"><span class="s1">console.error("Firestore 监听失败:", e);</span></p>
+<p class="p1"><span class="s1">setError("实时数据更新失败: " + e.message);</span></p>
+<p class="p1"><span class="s1">setDbLoading(false);</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return () =&gt; unsubscribeSnapshot();</span></p>
+<p class="p1"><span class="s1">}, [db, userId, appId, isAuthReady]);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- 本地状态持久化 (非 Firestore 数据) ---</span></p>
+<p class="p1"><span class="s1">useEffect(() =&gt; {</span></p>
+<p class="p1"><span class="s1">const savedLocal = localStorage.getItem('pixelos_local_save');</span></p>
+<p class="p1"><span class="s1">if (savedLocal) {</span></p>
+<p class="p1"><span class="s1">try {</span></p>
+<p class="p1"><span class="s1">const parsed = JSON.parse(savedLocal);</span></p>
+<p class="p1"><span class="s1">setGameState(prev =&gt; ({</span></p>
+<p class="p1"><span class="s1">...prev,</span></p>
+<p class="p1"><span class="s1">...parsed,</span></p>
+<p class="p1"><span class="s1">loaded: true,</span></p>
+<p class="p1"><span class="s1">inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],</span></p>
+<p class="p1"><span class="s1">gallery: Array.isArray(parsed.gallery) ? parsed.gallery : [],</span></p>
+<p class="p1"><span class="s1">icons: Array.isArray(parsed.icons) ? parsed.icons : prev.icons</span></p>
+<p class="p1"><span class="s1">}));</span></p>
+<p class="p1"><span class="s1">if (parsed.chats) setChats(parsed.chats);</span></p>
+<p class="p1"><span class="s1">if (parsed.posts) setPosts(parsed.posts);</span></p>
+<p class="p1"><span class="s1">if (parsed.stockPrice) setStockPrice(parsed.stockPrice);</span></p>
+<p class="p1"><span class="s1">if (parsed.cryptoPrice) setCryptoPrice(parsed.cryptoPrice);</span></p>
+<p class="p1"><span class="s1">} catch (e) { console.error("Load failed", e); }</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}, []);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">useEffect(() =&gt; {</span></p>
+<p class="p1"><span class="s1">if (dbLoading || gameState.gameover) return;</span></p>
+<p class="p1"><span class="s1">const dataToSave = {</span></p>
+<p class="p1"><span class="s1">...gameState,</span></p>
+<p class="p1"><span class="s1">posts,</span></p>
+<p class="p1"><span class="s1">chats,</span></p>
+<p class="p1"><span class="s1">stockPrice,</span></p>
+<p class="p1"><span class="s1">cryptoPrice</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p1"><span class="s1">localStorage.setItem('pixelos_local_save', JSON.stringify(dataToSave));</span></p>
+<p class="p1"><span class="s1">}, [gameState, posts, chats, stockPrice, cryptoPrice, dbLoading]);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- 核心循环和市场模拟 ---</span></p>
+<p class="p1"><span class="s1">useEffect(() =&gt; {</span></p>
+<p class="p1"><span class="s1">if (gameState.gameover) return;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 股票价格模拟 (每 3 秒更新一次)</span></p>
+<p class="p1"><span class="s1">const marketInterval = setInterval(() =&gt; {</span></p>
+<p class="p1"><span class="s1">setStockPrice(prevPrice =&gt; {</span></p>
+<p class="p1"><span class="s1">const change = (Math.random() - 0.5) * 2; // -1 to 1</span></p>
+<p class="p1"><span class="s1">return Math.max(10, Math.min(500, prevPrice * (1 + change * 0.01)));</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">setCryptoPrice(prevPrice =&gt; {</span></p>
+<p class="p1"><span class="s1">const change = (Math.random() - 0.5) * 4; // -2 to 2</span></p>
+<p class="p1"><span class="s1">return Math.max(100, Math.min(5000, prevPrice * (1 + change * 0.02)));</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">}, 3000);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 时间和健康循环 (每 5 秒更新 30 分钟)</span></p>
+<p class="p1"><span class="s1">const gameTimer = setInterval(() =&gt; {</span></p>
+<p class="p1"><span class="s1">setGameState(prev =&gt; {</span></p>
+<p class="p1"><span class="s1">let newMin = prev.minute + 30;</span></p>
+<p class="p1"><span class="s1">let newHour = prev.hour;</span></p>
+<p class="p1"><span class="s1">let newDay = prev.day;</span></p>
+<p class="p1"><span class="s1">let paid = prev.dailyPaid;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">if (newMin &gt;= 60) {</span></p>
+<p class="p1"><span class="s1">newMin = 0;</span></p>
+<p class="p1"><span class="s1">newHour += 1;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">if (newHour &gt;= 24) {</span></p>
+<p class="p1"><span class="s1">newMin = 0;</span></p>
+<p class="p1"><span class="s1">newHour = 8;</span></p>
+<p class="p1"><span class="s1">newDay += 1;</span></p>
+<p class="p1"><span class="s1">paid = false;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const isSleeping = prev.hour &gt;= 0 &amp;&amp; prev.hour &lt; 8;</span></p>
+<p class="p1"><span class="s1">return {</span></p>
+<p class="p1"><span class="s1">...prev,</span></p>
+<p class="p1"><span class="s1">hour: newHour,</span></p>
+<p class="p1"><span class="s1">minute: newMin,</span></p>
+<p class="p1"><span class="s1">day: newDay,</span></p>
+<p class="p1"><span class="s1">dailyPaid: paid,</span></p>
+<p class="p1"><span class="s1">health: isSleeping ? Math.min(100, prev.health + 2) : Math.max(0, prev.health - 0.2),</span></p>
+<p class="p1"><span class="s1">academics: Math.max(0, prev.academics - 0.1)</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">}, 5000);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return () =&gt; {</span></p>
+<p class="p1"><span class="s1">clearInterval(gameTimer);</span></p>
+<p class="p1"><span class="s1">clearInterval(marketInterval);</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p1"><span class="s1">}, [gameState.gameover]);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- 交易和数据操作函数 ---</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const addNotification = (title, msg) =&gt; {</span></p>
+<p class="p1"><span class="s1">const id = Date.now() + Math.random();</span></p>
+<p class="p1"><span class="s1">setNotifications(prev =&gt; [...prev, { id, title, msg }]);</span></p>
+<p class="p1"><span class="s1">setTimeout(() =&gt; setNotifications(prev =&gt; prev.filter(n =&gt; n.id !== id)), 4000);</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const updateGameState = (changes) =&gt; {</span></p>
+<p class="p1"><span class="s1">setGameState(prev =&gt; {</span></p>
+<p class="p1"><span class="s1">let newHour = prev.hour;</span></p>
+<p class="p1"><span class="s1">let newMin = prev.minute;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 处理时间</span></p>
+<p class="p1"><span class="s1">if (changes.timeCost) {</span></p>
+<p class="p1"><span class="s1">newMin += changes.timeCost;</span></p>
+<p class="p1"><span class="s1">while (newMin &gt;= 60) {</span></p>
+<p class="p1"><span class="s1">newMin -= 60;</span></p>
+<p class="p1"><span class="s1">newHour += 1;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">if (newHour &gt;= 24) {</span></p>
+<p class="p1"><span class="s1">// 模拟时间流逝导致跨天 (忽略分钟，直接进入第二天早上8点)</span></p>
+<p class="p1"><span class="s1">newHour = 8;</span></p>
+<p class="p1"><span class="s1">changes.day = (changes.day || 0) + 1;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const next = { ...prev, hour: newHour, minute: newMin };</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">for (const key in changes) {</span></p>
+<p class="p1"><span class="s1">if (key === 'timeCost') continue;</span></p>
+<p class="p1"><span class="s1">if (typeof changes[key] === 'number' &amp;&amp; key !== 'dailyPaid') {</span></p>
+<p class="p1"><span class="s1">next[key] = parseFloat((prev[key] + changes[key]).toFixed(1));</span></p>
+<p class="p1"><span class="s1">// 限制核心属性范围</span></p>
+<p class="p1"><span class="s1">if (key === 'health' || key === 'sanity' || key === 'academics') {</span></p>
+<p class="p1"><span class="s1">next[key] = Math.min(100, Math.max(0, next[key]));</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">} else {</span></p>
+<p class="p1"><span class="s1">next[key] = changes[key];</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">return next;</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const deductCash = useCallback(async (cost, actionType) =&gt; {</span></p>
+<p class="p1"><span class="s1">if (!db || !userId || dbLoading || cost &lt;= 0) {</span></p>
+<p class="p1"><span class="s1">addNotification("系统错误", "无法扣除现金。");</span></p>
+<p class="p1"><span class="s1">return false;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const currentCash = portfolio.cash;</span></p>
+<p class="p1"><span class="s1">if (currentCash &lt; cost) {</span></p>
+<p class="p1"><span class="s1">addNotification("操作失败", "现金不足！");</span></p>
+<p class="p1"><span class="s1">return false;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const portfolioDocRef = doc(db, 'artifacts', appId, 'users', userId, 'portfolio', 'data');</span></p>
+<p class="p1"><span class="s1">const newCash = currentCash - cost;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">try {</span></p>
+<p class="p1"><span class="s1">await updateDoc(portfolioDocRef, {</span></p>
+<p class="p1"><span class="s1">cash: newCash,</span></p>
+<p class="p1"><span class="s1">history: [</span></p>
+<p class="p1"><span class="s1">...(portfolio.history || []),</span></p>
+<p class="p1"><span class="s1">{</span></p>
+<p class="p1"><span class="s1">type: 'expense',</span></p>
+<p class="p1"><span class="s1">asset: actionType,</span></p>
+<p class="p1"><span class="s1">quantity: 1,</span></p>
+<p class="p1"><span class="s1">price: -cost, // Negative price for expense</span></p>
+<p class="p1"><span class="s1">timestamp: new Date().toISOString()</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">]</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">return true;</span></p>
+<p class="p1"><span class="s1">} catch (e) {</span></p>
+<p class="p1"><span class="s1">console.error("Deduct Cash Failed:", e);</span></p>
+<p class="p1"><span class="s1">addNotification("系统错误", "数据同步失败，请重试。");</span></p>
+<p class="p1"><span class="s1">return false;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}, [db, userId, dbLoading, portfolio, appId, addNotification]);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 统一交易逻辑 - 仅用于股票/加密币</span></p>
+<p class="p1"><span class="s1">const executeTrade = useCallback(async (assetType, action, amount) =&gt; {</span></p>
+<p class="p1"><span class="s1">if (!db || !userId || dbLoading || amount &lt;= 0 || !['stock', 'crypto'].includes(assetType)) {</span></p>
+<p class="p1"><span class="s1">console.error("Execute Trade Pre-check Failed:", { db, userId, dbLoading, amount, assetType });</span></p>
+<p class="p1"><span class="s1">return;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const currentPortfolio = portfolio;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const quantity = parseFloat(amount);</span></p>
+<p class="p1"><span class="s1">const price = assetType === 'stock' ? stockPrice : cryptoPrice;</span></p>
+<p class="p1"><span class="s1">const cost = quantity * price;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">let newCash = currentPortfolio.cash;</span></p>
+<p class="p1"><span class="s1">let newAsset = currentPortfolio[assetType];</span></p>
+<p class="p1"><span class="s1">let success = false;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 初始化更新对象</span></p>
+<p class="p1"><span class="s1">let updateFields = {};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">if (action === 'buy') {</span></p>
+<p class="p1"><span class="s1">if (newCash &lt; cost) {</span></p>
+<p class="p1"><span class="s1">addNotification("交易失败", "现金不足，无法购买！");</span></p>
+<p class="p1"><span class="s1">} else {</span></p>
+<p class="p1"><span class="s1">newCash -= cost;</span></p>
+<p class="p1"><span class="s1">newAsset += quantity;</span></p>
+<p class="p1"><span class="s1">updateFields = { cash: newCash, [assetType]: newAsset };</span></p>
+<p class="p1"><span class="s1">success = true;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">} else if (action === 'sell') {</span></p>
+<p class="p1"><span class="s1">if (newAsset &lt; quantity) {</span></p>
+<p class="p1"><span class="s1">addNotification("交易失败", `持有 ${assetType} 不足，无法卖出！`);</span></p>
+<p class="p1"><span class="s1">} else {</span></p>
+<p class="p1"><span class="s1">newCash += cost;</span></p>
+<p class="p1"><span class="s1">newAsset -= quantity;</span></p>
+<p class="p1"><span class="s1">updateFields = { cash: newCash, [assetType]: newAsset };</span></p>
+<p class="p1"><span class="s1">success = true;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">if (!success) return;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const portfolioDocRef = doc(db,</span></p>
+<p class="p1"><span class="s1">'artifacts', appId,</span></p>
+<p class="p1"><span class="s1">'users', userId,</span></p>
+<p class="p1"><span class="s1">'portfolio', 'data'</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const historyEntry = {</span></p>
+<p class="p1"><span class="s1">type: action,</span></p>
+<p class="p1"><span class="s1">asset: assetType,</span></p>
+<p class="p1"><span class="s1">quantity: quantity,</span></p>
+<p class="p1"><span class="s1">price: action === 'buy' ? -cost : cost, // Buy is expense, sell is income</span></p>
+<p class="p1"><span class="s1">timestamp: new Date().toISOString()</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">try {</span></p>
+<p class="p1"><span class="s1">await updateDoc(portfolioDocRef, {</span></p>
+<p class="p1"><span class="s1">...updateFields,</span></p>
+<p class="p1"><span class="s1">history: [</span></p>
+<p class="p1"><span class="s1">...(currentPortfolio.history || []),</span></p>
+<p class="p1"><span class="s1">historyEntry</span></p>
+<p class="p1"><span class="s1">]</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">addNotification("交易成功", `${action === 'buy' ? '购入' : '卖出'} ${quantity.toFixed(2)} 份 ${assetType.toUpperCase()}。`);</span></p>
+<p class="p1"><span class="s1">} catch (e) {</span></p>
+<p class="p1"><span class="s1">console.error("更新投资组合失败:", e);</span></p>
+<p class="p1"><span class="s1">addNotification("交易错误", "数据同步失败，请重试。");</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}, [db, userId, dbLoading, portfolio, stockPrice, cryptoPrice, appId, addNotification]);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 发帖逻辑 (生图 + 存图)</span></p>
+<p class="p1"><span class="s1">const handlePost = async (caption, userPrompt, imageUrl, imageSource, selectedItem) =&gt; {</span></p>
+<p class="p1"><span class="s1">updateGameState({ health: -1, hour: imageSource === 'text' ? 0 : 1 });</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">let finalImageSrc = null;</span></p>
+<p class="p1"><span class="s1">let finalRisk = 5;</span></p>
+<p class="p1"><span class="s1">let finalFans = 10;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">if (imageSource === 'ai' &amp;&amp; userPrompt) {</span></p>
+<p class="p1"><span class="s1">addNotification("System", "正在生成图像与审核...");</span></p>
+<p class="p1"><span class="s1">const imgPrompt = `${userPrompt}, ${selectedItem ? selectedItem.name : ''}, anime style, pixel art aesthetic, cute girl`;</span></p>
+<p class="p1"><span class="s1">const imageBase64 = await callImagen(imgPrompt);</span></p>
+<p class="p1"><span class="s1">finalImageSrc = imageBase64;</span></p>
+<p class="p1"><span class="s1">} else if (imageSource === 'url' &amp;&amp; imageUrl) {</span></p>
+<p class="p1"><span class="s1">finalImageSrc = imageUrl;</span></p>
+<p class="p1"><span class="s1">} else if (imageSource === 'text') {</span></p>
+<p class="p1"><span class="s1">finalImageSrc = null; // 纯文字帖文</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 如果是图片帖文但图片生成失败或用户未提供 URL，使用通用占位图</span></p>
+<p class="p1"><span class="s1">if (!finalImageSrc &amp;&amp; imageSource !== 'text') {</span></p>
+<p class="p1"><span class="s1">finalImageSrc = `https://placehold.co/400x400/1e293b/f8fafc?text=Image+Placeholder`;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const aiPrompt = `发帖文案：${caption}。物品：${selectedItem ? selectedItem.name : '无'}。${imageSource === 'text' ? '纯文字帖文。' : '带有图片。'}生成JSON: {"risk_score": 0-100, "fans_gain": 0-500, "comments": ["评论1", "评论2"], "trigger_dm": boolean, "dm_content": "..."}`;</span></p>
+<p class="p1"><span class="s1">const result = await callGeminiJson(aiPrompt);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">if (!result) {</span></p>
+<p class="p1"><span class="s1">addNotification("Error", "网络错误，发布失败");</span></p>
+<p class="p1"><span class="s1">return;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">finalRisk = imageSource === 'text' ? Math.floor((result.risk_score || 10) / 3) : (result.risk_score || 10);</span></p>
+<p class="p1"><span class="s1">finalFans = result.fans_gain || 10;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const newImage = {</span></p>
+<p class="p1"><span class="s1">id: Date.now(),</span></p>
+<p class="p1"><span class="s1">src: finalImageSrc || 'TEXT',</span></p>
+<p class="p1"><span class="s1">prompt: userPrompt || 'N/A',</span></p>
+<p class="p1"><span class="s1">risk: finalRisk,</span></p>
+<p class="p1"><span class="s1">date: `Day ${gameState.day}`</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">setGameState(prev =&gt; ({</span></p>
+<p class="p1"><span class="s1">...prev,</span></p>
+<p class="p1"><span class="s1">gallery: (imageSource !== 'text') ? [newImage, ...prev.gallery] : prev.gallery,</span></p>
+<p class="p1"><span class="s1">fans: prev.fans + finalFans,</span></p>
+<p class="p1"><span class="s1">exposure: prev.exposure + finalRisk / 5,</span></p>
+<p class="p1"><span class="s1">sanity: prev.sanity - (finalRisk / 15)</span></p>
+<p class="p1"><span class="s1">}));</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const newPost = {</span></p>
+<p class="p1"><span class="s1">id: newImage.id,</span></p>
+<p class="p1"><span class="s1">desc: caption,</span></p>
+<p class="p1"><span class="s1">imgSrc: newImage.src,</span></p>
+<p class="p1"><span class="s1">likes: Math.floor(finalFans * 0.8),</span></p>
+<p class="p1"><span class="s1">comments: result.comments || [],</span></p>
+<p class="p1"><span class="s1">risk: finalRisk</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">setPosts(prev =&gt; [newPost, ...prev]);</span></p>
+<p class="p1"><span class="s1">addNotification("SweetGram", `发布成功！粉丝 +${finalFans}`);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">if (result.trigger_dm &amp;&amp; result.dm_content) {</span></p>
+<p class="p1"><span class="s1">createChat('creep', null, result.dm_content);</span></p>
+<p class="p1"><span class="s1">addNotification("K-Talk", "收到一条私信");</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const createChat = (type, name, initialMsg) =&gt; {</span></p>
+<p class="p1"><span class="s1">const id = `user_${Date.now()}`;</span></p>
+<p class="p1"><span class="s1">const newChat = {</span></p>
+<p class="p1"><span class="s1">id,</span></p>
+<p class="p1"><span class="s1">name: name || `User_${id.slice(-4)}`,</span></p>
+<p class="p1"><span class="s1">avatar: ['👨', '🦊', '🐷'][Math.floor(Math.random()*3)],</span></p>
+<p class="p1"><span class="s1">type: type || 'fan',</span></p>
+<p class="p1"><span class="s1">msgs: initialMsg ? [{ type: 'in', text: initialMsg }] : []</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p1"><span class="s1">setChats(prev =&gt; [newChat, ...prev]);</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const handleIconDrag = (id, newX, newY) =&gt; {</span></p>
+<p class="p1"><span class="s1">setGameState(prev =&gt; ({</span></p>
+<p class="p1"><span class="s1">...prev,</span></p>
+<p class="p1"><span class="s1">icons: prev.icons.map(icon =&gt; icon.id === id ? { ...icon, x: newX, y: newY } : icon)</span></p>
+<p class="p1"><span class="s1">}));</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- 渲染 ---</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const getWallpaper = () =&gt; {</span></p>
+<p class="p1"><span class="s1">const wp = WALLPAPERS.find(w =&gt; w.id === gameState.settings.wallpaper) || WALLPAPERS[0];</span></p>
+<p class="p1"><span class="s1">return wp.style;</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const currentCash = portfolio.cash || 0;</span></p>
+<p class="p1"><span class="s1">const currentStockValue = (portfolio.stock * stockPrice) || 0;</span></p>
+<p class="p1"><span class="s1">const currentCryptoValue = (portfolio.crypto * cryptoPrice) || 0;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">if (error) return &lt;div className="p-4 text-center text-red-600"&gt;错误: {error}&lt;/div&gt;;</span></p>
+<p class="p1"><span class="s1">if (!isAuthReady || dbLoading) return &lt;div className="flex items-center justify-center h-screen bg-gray-100"&gt;&lt;Loader className="animate-spin text-indigo-500 mr-3"/&gt; 正在初始化系统...&lt;/div&gt;;</span></p>
+<p class="p1"><span class="s1">if (gameState.gameover) return &lt;div className="bg-black text-white h-screen flex items-center justify-center"&gt;GAME OVER&lt;/div&gt;;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className={`w-full h-screen overflow-hidden relative font-sans select-none ${getWallpaper()} text-gray-800 transition-all duration-500`}&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="pointer-events-none absolute inset-0 z-50 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAABkCAYAAABHP/WjAAAABmJLR0QA/wD/AP/gvaeTAAAAEElEQVQImWP4//8/MwMjIQAABt0D56LzN2YAAAAASUVORK5CYII=')] opacity-5 mix-blend-overlay"&gt;&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;MenuBar gameState={gameState} currentCash={currentCash} /&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div className="absolute inset-0 top-8 bottom-16"&gt;</span></p>
+<p class="p1"><span class="s1">{gameState.icons.map(icon =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;DraggableIcon</span></p>
+<p class="p1"><span class="s1">key={icon.id}</span></p>
+<p class="p1"><span class="s1">icon={icon}</span></p>
+<p class="p1"><span class="s1">onDragEnd={handleIconDrag}</span></p>
+<p class="p1"><span class="s1">onClick={() =&gt; setWindows(p =&gt; ({...p, [icon.id]: {...p[icon.id], isOpen: true, z: Date.now()}}))}</span></p>
+<p class="p1"><span class="s1">/&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">{Object.entries(windows).map(([key, win]) =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;Window key={key} config={win} onClose={() =&gt; setWindows(p =&gt; ({...p, [key]: {...p[key], isOpen: false}}))}&gt;</span></p>
+<p class="p1"><span class="s1">{key === 'browser' &amp;&amp; &lt;BrowserApp gameState={gameState} onPost={handlePost} posts={posts} inventory={gameState.inventory} /&gt;}</span></p>
+<p class="p1"><span class="s1">{key === 'chat' &amp;&amp; &lt;ChatApp chats={chats} currentId={currentChatId} onSelect={setCurrentChatId} setChats={setChats} updateState={updateGameState} gameState={gameState} /&gt;}</span></p>
+<p class="p1"><span class="s1">{key === 'shop' &amp;&amp; &lt;ShopApp currentCash={currentCash} onBuy={(item) =&gt; {</span></p>
+<p class="p1"><span class="s1">if(currentCash &gt;= item.price) {</span></p>
+<p class="p1"><span class="s1">deductCash(item.price, 'item_purchase');</span></p>
+<p class="p1"><span class="s1">setGameState(p =&gt; ({...p, inventory: [...p.inventory, item]}));</span></p>
+<p class="p1"><span class="s1">addNotification("Shop", "购买成功");</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}} inventory={gameState.inventory} /&gt;}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">{key === 'stonks' &amp;&amp; &lt;StonksApp</span></p>
+<p class="p1"><span class="s1">stockPrice={stockPrice}</span></p>
+<p class="p1"><span class="s1">cryptoPrice={cryptoPrice}</span></p>
+<p class="p1"><span class="s1">portfolio={portfolio}</span></p>
+<p class="p1"><span class="s1">executeTrade={executeTrade}</span></p>
+<p class="p1"><span class="s1">addNotification={addNotification}</span></p>
+<p class="p1"><span class="s1">db={db}</span></p>
+<p class="p1"><span class="s1">userId={userId}</span></p>
+<p class="p1"><span class="s1">appId={appId}</span></p>
+<p class="p1"><span class="s1">/&gt;}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">{key === 'finder' &amp;&amp; &lt;FinderApp gallery={gameState.gallery} /&gt;}</span></p>
+<p class="p1"><span class="s1">{key === 'settings' &amp;&amp; &lt;SettingsApp current={gameState.settings} onChange={(s) =&gt; setGameState(p =&gt; ({...p, settings: {...p.settings, ...s}}))} onReset={() =&gt; {localStorage.clear(); window.location.reload();}} /&gt;}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">{key === 'food' &amp;&amp; &lt;FoodApp options={FOOD_OPTIONS} deductCash={deductCash} updateState={updateGameState} currentCash={currentCash} addNotification={addNotification} /&gt;}</span></p>
+<p class="p1"><span class="s1">{key === 'hospital' &amp;&amp; &lt;HospitalApp options={HOSPITAL_OPTIONS} deductCash={deductCash} updateState={updateGameState} currentCash={currentCash} addNotification={addNotification} /&gt;}</span></p>
+<p class="p1"><span class="s1">{key === 'study' &amp;&amp; &lt;StudyApp options={STUDY_OPTIONS} deductCash={deductCash} updateState={updateGameState} currentCash={currentCash} addNotification={addNotification} /&gt;}</span></p>
+<p class="p1"><span class="s1">{key === 'bank' &amp;&amp; &lt;BankApp portfolio={portfolio} /&gt;}</span></p>
+<p class="p1"><span class="s1">&lt;/Window&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;Dock windows={windows} setWindows={setWindows} /&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div className="absolute top-10 right-4 flex flex-col gap-2 z-[100]"&gt;</span></p>
+<p class="p1"><span class="s1">{notifications.map(n =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;div key={n.id} className="bg-white/90 backdrop-blur shadow-lg rounded p-3 w-64 animate-slide-in text-sm border-l-4 border-blue-500"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="font-bold"&gt;{n.title}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-xs text-gray-600"&gt;{n.msg}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- App 组件: FoodApp ---</span></p>
+<p class="p1"><span class="s1">function FoodApp({ options, deductCash, updateState, currentCash, addNotification }) {</span></p>
+<p class="p1"><span class="s1">const handleAction = async (item) =&gt; {</span></p>
+<p class="p1"><span class="s1">const success = await deductCash(item.cost, `food_${item.id}`);</span></p>
+<p class="p1"><span class="s1">if (success) {</span></p>
+<p class="p1"><span class="s1">updateState({</span></p>
+<p class="p1"><span class="s1">health: item.healthGain,</span></p>
+<p class="p1"><span class="s1">academics: item.academicsChange,</span></p>
+<p class="p1"><span class="s1">timeCost: item.timeCost</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">addNotification("饱了么", `享用 ${item.name} 成功！体力+${item.healthGain}`);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="h-full bg-gray-50 p-6 overflow-y-auto"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2"&gt;&lt;Utensils size={24}/&gt; 饱了么 (外卖)&lt;/h2&gt;</span></p>
+<p class="p1"><span class="s1">&lt;p className="text-sm text-gray-600 mb-6"&gt;当前现金：&lt;span className="font-mono font-bold text-green-600"&gt;¥{currentCash.toFixed(2)}&lt;/span&gt;&lt;/p&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div className="space-y-4"&gt;</span></p>
+<p class="p1"><span class="s1">{options.map(item =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;div key={item.id} className="bg-white p-4 rounded-lg shadow flex justify-between items-center border border-gray-200"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="font-bold text-base"&gt;{item.name} &lt;span className="text-xs text-red-500"&gt;¥{item.cost}&lt;/span&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;p className="text-xs text-gray-500 mt-1"&gt;</span></p>
+<p class="p1"><span class="s1">效果: 体力 +{item.healthGain}, 学术 {item.academicsChange &gt;= 0 ? '+' : ''}{item.academicsChange} | 耗时: {item.timeCost} 分钟</span></p>
+<p class="p1"><span class="s1">&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button</span></p>
+<p class="p1"><span class="s1">onClick={() =&gt; handleAction(item)}</span></p>
+<p class="p1"><span class="s1">disabled={currentCash &lt; item.cost}</span></p>
+<p class="p1"><span class="s1">className={`px-4 py-2 text-sm rounded text-white font-bold transition ${currentCash &lt; item.cost ? 'bg-gray-400' : 'bg-green-500 hover:bg-green-600'}`}</span></p>
+<p class="p1"><span class="s1">&gt;</span></p>
+<p class="p1"><span class="s1">{currentCash &lt; item.cost ? '现金不足' : '下单'}</span></p>
+<p class="p1"><span class="s1">&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="mt-6 text-xs text-gray-500 p-2 border-t"&gt;吃饭可以恢复体力，但会消耗时间，不健康的食物还会影响学习状态。&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- App 组件: HospitalApp ---</span></p>
+<p class="p1"><span class="s1">function HospitalApp({ options, deductCash, updateState, currentCash, addNotification }) {</span></p>
+<p class="p1"><span class="s1">const handleAction = async (item) =&gt; {</span></p>
+<p class="p1"><span class="s1">const success = await deductCash(item.cost, `health_${item.id}`);</span></p>
+<p class="p1"><span class="s1">if (success) {</span></p>
+<p class="p1"><span class="s1">updateState({</span></p>
+<p class="p1"><span class="s1">health: item.healthGain,</span></p>
+<p class="p1"><span class="s1">sanity: item.sanityGain,</span></p>
+<p class="p1"><span class="s1">exposure: item.exposureRisk,</span></p>
+<p class="p1"><span class="s1">timeCost: item.timeCost</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">addNotification("平安健康", `${item.name} 完成。健康+${item.healthGain}，精神+${item.sanityGain}`);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="h-full bg-gray-50 p-6 overflow-y-auto"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h2 className="text-2xl font-bold text-red-700 mb-4 flex items-center gap-2"&gt;&lt;Stethoscope size={24}/&gt; 平安健康 (医疗)&lt;/h2&gt;</span></p>
+<p class="p1"><span class="s1">&lt;p className="text-sm text-gray-600 mb-6"&gt;当前现金：&lt;span className="font-mono font-bold text-green-600"&gt;¥{currentCash.toFixed(2)}&lt;/span&gt;&lt;/p&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div className="space-y-4"&gt;</span></p>
+<p class="p1"><span class="s1">{options.map(item =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;div key={item.id} className="bg-white p-4 rounded-lg shadow flex justify-between items-center border border-gray-200"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="font-bold text-base"&gt;{item.name} &lt;span className="text-xs text-red-500"&gt;¥{item.cost}&lt;/span&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;p className="text-xs text-gray-500 mt-1"&gt;</span></p>
+<p class="p1"><span class="s1">效果: 体力 +{item.healthGain}, 精神 +{item.sanityGain} | 风险: {item.exposureRisk} 曝光 | 耗时: {item.timeCost} 分钟</span></p>
+<p class="p1"><span class="s1">&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button</span></p>
+<p class="p1"><span class="s1">onClick={() =&gt; handleAction(item)}</span></p>
+<p class="p1"><span class="s1">disabled={currentCash &lt; item.cost}</span></p>
+<p class="p1"><span class="s1">className={`px-4 py-2 text-sm rounded text-white font-bold transition ${currentCash &lt; item.cost ? 'bg-gray-400' : 'bg-red-500 hover:bg-red-600'}`}</span></p>
+<p class="p1"><span class="s1">&gt;</span></p>
+<p class="p1"><span class="s1">{currentCash &lt; item.cost ? '现金不足' : '立即就诊'}</span></p>
+<p class="p1"><span class="s1">&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="mt-6 text-xs text-gray-500 p-2 border-t"&gt;高风险操作（如整形）能显著改善状态，但会增加曝光度。&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- App 组件: StudyApp ---</span></p>
+<p class="p1"><span class="s1">function StudyApp({ options, deductCash, updateState, currentCash, addNotification }) {</span></p>
+<p class="p1"><span class="s1">const handleAction = async (item) =&gt; {</span></p>
+<p class="p1"><span class="s1">let success = true;</span></p>
+<p class="p1"><span class="s1">if (item.cashCost &gt; 0) {</span></p>
+<p class="p1"><span class="s1">success = await deductCash(item.cashCost, `study_${item.id}`);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">if (success) {</span></p>
+<p class="p1"><span class="s1">updateState({</span></p>
+<p class="p1"><span class="s1">academics: item.academicsGain,</span></p>
+<p class="p1"><span class="s1">health: -2, // 学习消耗体力</span></p>
+<p class="p1"><span class="s1">timeCost: item.timeCost</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">addNotification("学习通", `完成 ${item.name}！学术+${item.academicsGain}`);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="h-full bg-gray-50 p-6 overflow-y-auto"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h2 className="text-2xl font-bold text-purple-700 mb-4 flex items-center gap-2"&gt;&lt;GraduationCap size={24}/&gt; 学习通 (学术)&lt;/h2&gt;</span></p>
+<p class="p1"><span class="s1">&lt;p className="text-sm text-gray-600 mb-6"&gt;当前现金：&lt;span className="font-mono font-bold text-green-600"&gt;¥{currentCash.toFixed(2)}&lt;/span&gt;&lt;/p&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div className="space-y-4"&gt;</span></p>
+<p class="p1"><span class="s1">{options.map(item =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;div key={item.id} className="bg-white p-4 rounded-lg shadow flex justify-between items-center border border-gray-200"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="font-bold text-base"&gt;{item.name} &lt;span className="text-xs text-red-500"&gt;{item.cashCost &gt; 0 ? `¥${item.cashCost}` : '免费'}&lt;/span&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;p className="text-xs text-gray-500 mt-1"&gt;</span></p>
+<p class="p1"><span class="s1">效果: 学术 +{item.academicsGain}, 体力 -2 | 耗时: {item.timeCost} 分钟</span></p>
+<p class="p1"><span class="s1">&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button</span></p>
+<p class="p1"><span class="s1">onClick={() =&gt; handleAction(item)}</span></p>
+<p class="p1"><span class="s1">disabled={currentCash &lt; item.cashCost}</span></p>
+<p class="p1"><span class="s1">className={`px-4 py-2 text-sm rounded text-white font-bold transition ${currentCash &lt; item.cashCost ? 'bg-gray-400' : 'bg-purple-500 hover:bg-purple-600'}`}</span></p>
+<p class="p1"><span class="s1">&gt;</span></p>
+<p class="p1"><span class="s1">{currentCash &lt; item.cashCost ? '现金不足' : '开始学习'}</span></p>
+<p class="p1"><span class="s1">&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="mt-6 text-xs text-gray-500 p-2 border-t"&gt;保持高学术水平是平衡生活的关键，但要警惕学习时间过长导致的疲劳。&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- App 组件: BankApp ---</span></p>
+<p class="p1"><span class="s1">function BankApp({ portfolio }) {</span></p>
+<p class="p1"><span class="s1">const formatCurrency = (amount) =&gt; (parseFloat(amount) || 0).toFixed(2);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 假设 portfolio.history 是最新的</span></p>
+<p class="p1"><span class="s1">const history = portfolio.history.slice().reverse(); // 反转，最新在最前</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="h-full bg-gray-50 p-6 flex flex-col"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h2 className="text-2xl font-bold text-blue-700 mb-4 flex items-center gap-2"&gt;&lt;DollarSign size={24}/&gt; Wallet (钱包)&lt;/h2&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div className="bg-white p-4 rounded-lg shadow-md mb-4 border-l-4 border-blue-500"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-sm text-gray-500"&gt;总资产 (现金 + 投资)&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-4xl font-mono font-extrabold text-blue-700"&gt;¥{formatCurrency(portfolio.cash + (portfolio.stock * 100) + (portfolio.crypto * 500))}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-xs text-gray-500 mt-2"&gt;现金余额: &lt;span className="font-bold"&gt;¥{formatCurrency(portfolio.cash)}&lt;/span&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;h3 className="text-lg font-bold text-gray-700 mb-2 border-b pb-1"&gt;最近交易记录&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex-1 overflow-y-auto space-y-2 text-sm pr-2"&gt;</span></p>
+<p class="p1"><span class="s1">{history.length &gt; 0 ? (</span></p>
+<p class="p1"><span class="s1">history.map((tx, index) =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;div key={index} className={`flex justify-between items-center p-2 rounded ${tx.price &gt; 0 ? 'bg-green-100/50' : 'bg-red-100/50'}`}&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex flex-col"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="font-semibold capitalize"&gt;</span></p>
+<p class="p1"><span class="s1">{tx.type === 'buy' ? '购买' : tx.type === 'sell' ? '出售' : tx.type === 'expense' ? '支出' : '收入'} - {tx.asset}</span></p>
+<p class="p1"><span class="s1">&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-xs text-gray-500"&gt;{new Date(tx.timestamp).toLocaleTimeString()}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className={`font-mono font-bold ${tx.price &gt; 0 ? 'text-green-600' : 'text-red-600'}`}&gt;</span></p>
+<p class="p1"><span class="s1">{tx.price &gt; 0 ? '+' : ''}¥{formatCurrency(Math.abs(tx.price))}</span></p>
+<p class="p1"><span class="s1">&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">))</span></p>
+<p class="p1"><span class="s1">) : (</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-center text-gray-400 mt-4"&gt;暂无交易记录&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">)}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- App 组件: ChatApp (集成 Gemini API) ---</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function ChatApp({ chats, currentId, onSelect, setChats, updateState, gameState }) {</span></p>
+<p class="p1"><span class="s1">const activeChat = chats.find(c =&gt; c.id === currentId) || chats[0];</span></p>
+<p class="p1"><span class="s1">const [input, setInput] = useState("");</span></p>
+<p class="p1"><span class="s1">const [showGallery, setShowGallery] = useState(false);</span></p>
+<p class="p1"><span class="s1">const [isTyping, setIsTyping] = useState(false); // 新增状态</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const scrollRef = useRef(null);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 滚动到底部</span></p>
+<p class="p1"><span class="s1">useEffect(() =&gt; {</span></p>
+<p class="p1"><span class="s1">if (scrollRef.current) {</span></p>
+<p class="p1"><span class="s1">scrollRef.current.scrollTop = scrollRef.current.scrollHeight;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}, [activeChat]);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const send = (txt = input, type = 'text', payload = null) =&gt; {</span></p>
+<p class="p1"><span class="s1">if (!txt &amp;&amp; type === 'text') return;</span></p>
+<p class="p1"><span class="s1">const newMsg = { type: 'out', text: txt, contentType: type, content: payload };</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 1. 发送消息到本地 UI</span></p>
+<p class="p1"><span class="s1">setChats(prev =&gt; prev.map(c =&gt; c.id === activeChat.id ? { ...c, msgs: [...c.msgs, newMsg] } : c));</span></p>
+<p class="p1"><span class="s1">setInput("");</span></p>
+<p class="p1"><span class="s1">setShowGallery(false);</span></p>
+<p class="p1"><span class="s1">setIsTyping(true); // 显示正在输入</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 2. 调用 Gemini API 获取回复</span></p>
+<p class="p1"><span class="s1">setTimeout(async () =&gt; {</span></p>
+<p class="p1"><span class="s1">const prompt = `你和玩家正在K-Talk聊天。玩家发了${type === 'image' ? '一张照片' : '消息: '+txt}。你的角色和说话风格是：${NPC_PERSONAS[activeChat.type] || "你是一个普通的粉丝，友好回复。"}`;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 使用新的 callGeminiText 函数获取纯文本回复</span></p>
+<p class="p1"><span class="s1">const resText = await callGeminiText(prompt, `请严格扮演一个${activeChat.name}（角色类型：${activeChat.type}），用中文回复玩家的消息。不要透露你是一个AI模型。`);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">setIsTyping(false); // 隐藏正在输入</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">if (resText) {</span></p>
+<p class="p1"><span class="s1">// 3. 将回复添加到本地 UI</span></p>
+<p class="p1"><span class="s1">setChats(prev =&gt; prev.map(c =&gt; c.id === activeChat.id ? { ...c, msgs: [...c.msgs, { type: 'in', text: resText }] } : c));</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">}, 1500); // 模拟网络延迟和思考时间</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex h-full bg-white"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="w-1/3 border-r bg-gray-50 overflow-y-auto"&gt;</span></p>
+<p class="p1"><span class="s1">{chats.map(c =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;div key={c.id} onClick={() =&gt; onSelect(c.id)} className={`p-3 border-b cursor-pointer hover:bg-gray-100 ${c.id === currentId ? 'bg-blue-50' : ''}`}&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex items-center gap-2"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-xl"&gt;{c.avatar}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex-1 min-w-0"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="font-bold text-sm truncate"&gt;{c.name}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-xs text-gray-500 truncate"&gt;{c.msgs[c.msgs.length-1]?.text || '[图片]'}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex-1 flex flex-col relative"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="p-3 border-b font-bold flex justify-between"&gt;</span></p>
+<p class="p1"><span class="s1">{activeChat.name}</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; setShowGallery(!showGallery)} className="text-gray-500 hover:text-blue-500"&gt;&lt;ImgIcon size={20}/&gt;&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">{/* 聊天记录区 */}</span></p>
+<p class="p1"><span class="s1">&lt;div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#f2f2f2]"&gt;</span></p>
+<p class="p1"><span class="s1">{activeChat.msgs.map((m, i) =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;div key={i} className={`flex ${m.type === 'out' ? 'justify-end' : ''}`}&gt;</span></p>
+<p class="p1"><span class="s1">{m.contentType === 'image' ? (</span></p>
+<p class="p1"><span class="s1">&lt;div className="max-w-[60%] border-4 border-green-500 rounded-lg overflow-hidden"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;img src={m.content} alt="Sent" className="w-full" /&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">) : (</span></p>
+<p class="p1"><span class="s1">&lt;div className={`p-2 max-w-[80%] rounded-xl text-sm break-words ${m.type === 'out' ? 'bg-green-500 text-white shadow-md' : 'bg-white border shadow-sm'}`}&gt;{m.text}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">)}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">{/* 正在输入提示 */}</span></p>
+<p class="p1"><span class="s1">{isTyping &amp;&amp; activeChat.type !== 'mom' &amp;&amp; (</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex justify-start"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="p-2 max-w-[80%] rounded-xl text-sm bg-white border shadow-sm flex items-center"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-xs text-gray-400 mr-2"&gt;{activeChat.name} 正在输入&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce delay-100"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce delay-200 ml-1"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce delay-300 ml-1"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">)}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">{/* 相册发送区 */}</span></p>
+<p class="p1"><span class="s1">{showGallery &amp;&amp; (</span></p>
+<p class="p1"><span class="s1">&lt;div className="absolute bottom-12 left-0 right-0 h-40 bg-white border-t shadow-lg overflow-x-auto p-2 flex gap-2 z-10"&gt;</span></p>
+<p class="p1"><span class="s1">{gameState.gallery.map(img =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;img</span></p>
+<p class="p1"><span class="s1">key={img.id} src={img.src} alt="Gallery"</span></p>
+<p class="p1"><span class="s1">className="h-full w-auto object-cover cursor-pointer hover:opacity-80 border-2 border-transparent hover:border-blue-500"</span></p>
+<p class="p1"><span class="s1">onClick={() =&gt; send("我给你发了一张自拍照，你觉得怎么样？", 'image', img.src)}</span></p>
+<p class="p1"><span class="s1">/&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">{gameState.gallery.length === 0 &amp;&amp; &lt;div className="text-gray-400 m-auto"&gt;相册为空&lt;/div&gt;}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">)}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">{/* 输入框 */}</span></p>
+<p class="p1"><span class="s1">&lt;div className="p-2 border-t flex gap-2"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;input className="flex-1 border rounded-full px-4 text-sm focus:ring-2 focus:ring-blue-400 transition" value={input} onChange={e =&gt; setInput(e.target.value)} onKeyDown={e =&gt; e.key === 'Enter' &amp;&amp; send()}/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; send()} className="bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-blue-600 transition disabled:opacity-50" disabled={isTyping}&gt;</span></p>
+<p class="p1"><span class="s1">&lt;Send size={16}/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- App 组件: StonksApp (未修改) ---</span></p>
+<p class="p1"><span class="s1">function StonksApp({ stockPrice, cryptoPrice, portfolio, executeTrade, addNotification, db, userId, appId }) {</span></p>
+<p class="p1"><span class="s1">const { cash, stock, crypto, nfts } = portfolio;</span></p>
+<p class="p1"><span class="s1">const [amount, setAmount] = useState(1); // 默认交易数量 1</span></p>
+<p class="p1"><span class="s1">const [assetType, setAssetType] = useState('stock'); // 默认股票</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const handleInvest = (action) =&gt; {</span></p>
+<p class="p1"><span class="s1">executeTrade(assetType, action, amount);</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const mintNFT = async () =&gt; {</span></p>
+<p class="p1"><span class="s1">const cost = 500;</span></p>
+<p class="p1"><span class="s1">if (!db || !userId || cash &lt; cost) {</span></p>
+<p class="p1"><span class="s1">addNotification("交易失败", "现金不足或系统未就绪！");</span></p>
+<p class="p1"><span class="s1">return;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const value = 100 + (portfolio.cash * 0.05); // 基于现金估值</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const portfolioDocRef = doc(db, 'artifacts', appId, 'users', userId, 'portfolio', 'data');</span></p>
+<p class="p1"><span class="s1">const newCash = cash - cost;</span></p>
+<p class="p1"><span class="s1">const newNFT = { id: Date.now(), value, initialCost: cost };</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">try {</span></p>
+<p class="p1"><span class="s1">await updateDoc(portfolioDocRef, {</span></p>
+<p class="p1"><span class="s1">cash: newCash,</span></p>
+<p class="p1"><span class="s1">nfts: [...nfts, newNFT],</span></p>
+<p class="p1"><span class="s1">history: [</span></p>
+<p class="p1"><span class="s1">...(portfolio.history || []),</span></p>
+<p class="p1"><span class="s1">{</span></p>
+<p class="p1"><span class="s1">type: 'buy',</span></p>
+<p class="p1"><span class="s1">asset: 'nft',</span></p>
+<p class="p1"><span class="s1">quantity: 1,</span></p>
+<p class="p1"><span class="s1">price: -cost,</span></p>
+<p class="p1"><span class="s1">timestamp: new Date().toISOString()</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">]</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">addNotification("NFT 铸造成功", `铸造成本 ¥${cost}，估值 ¥${value.toFixed(0)}`);</span></p>
+<p class="p1"><span class="s1">} catch (e) {</span></p>
+<p class="p1"><span class="s1">console.error("铸造 NFT 失败:", e);</span></p>
+<p class="p1"><span class="s1">addNotification("交易错误", "NFT 铸造失败。");</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const sellNFT = async (id, value) =&gt; {</span></p>
+<p class="p1"><span class="s1">if (!db || !userId) {</span></p>
+<p class="p1"><span class="s1">addNotification("交易失败", "系统未就绪！");</span></p>
+<p class="p1"><span class="s1">return;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const sellPrice = value * (0.8 + Math.random() * 0.4); // 随机浮动</span></p>
+<p class="p1"><span class="s1">const newCash = cash + sellPrice;</span></p>
+<p class="p1"><span class="s1">const newNFTs = nfts.filter(n =&gt; n.id !== id);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const portfolioDocRef = doc(db, 'artifacts', appId, 'users', userId, 'portfolio', 'data');</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">try {</span></p>
+<p class="p1"><span class="s1">await updateDoc(portfolioDocRef, {</span></p>
+<p class="p1"><span class="s1">cash: newCash,</span></p>
+<p class="p1"><span class="s1">nfts: newNFTs,</span></p>
+<p class="p1"><span class="s1">history: [</span></p>
+<p class="p1"><span class="s1">...(portfolio.history || []),</span></p>
+<p class="p1"><span class="s1">{</span></p>
+<p class="p1"><span class="s1">type: 'sell',</span></p>
+<p class="p1"><span class="s1">asset: 'nft',</span></p>
+<p class="p1"><span class="s1">quantity: 1,</span></p>
+<p class="p1"><span class="s1">price: sellPrice,</span></p>
+<p class="p1"><span class="s1">timestamp: new Date().toISOString()</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">]</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p1"><span class="s1">addNotification("出售成功", `NFT 已以 ¥${sellPrice.toFixed(2)} 的价格卖出。`);</span></p>
+<p class="p1"><span class="s1">} catch (e) {</span></p>
+<p class="p1"><span class="s1">console.error("出售 NFT 失败:", e);</span></p>
+<p class="p1"><span class="s1">addNotification("交易错误", "NFT 出售失败。");</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const formatCurrency = (amount) =&gt; (parseFloat(amount) || 0).toFixed(2);</span></p>
+<p class="p1"><span class="s1">const stockChange = stockPrice &gt; 100 ? (stockPrice / 100 - 1) : -(1 - stockPrice / 100);</span></p>
+<p class="p1"><span class="s1">const cryptoChange = cryptoPrice &gt; 500 ? (cryptoPrice / 500 - 1) : -(1 - cryptoPrice / 500);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex flex-col h-full bg-gray-900 text-green-400 font-mono p-4 overflow-y-auto"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="grid grid-cols-2 gap-4 mb-6"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="border border-green-800 p-4 rounded bg-black"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h3 className="text-white text-sm"&gt;股票 (STOCK)&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-2xl font-bold"&gt;¥{formatCurrency(stockPrice)}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className={stockChange &gt;= 0 ? "text-green-500" : "text-red-500"}&gt;</span></p>
+<p class="p1"><span class="s1">{stockChange &gt;= 0 ? '+' : ''}{(stockChange * 100).toFixed(2)}%</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="border border-green-800 p-4 rounded bg-black"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h3 className="text-white text-sm"&gt;加密币 (CRYPTO)&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-2xl font-bold"&gt;¥{formatCurrency(cryptoPrice)}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className={cryptoChange &gt;= 0 ? "text-green-500" : "text-red-500"}&gt;</span></p>
+<p class="p1"><span class="s1">{cryptoChange &gt;= 0 ? '+' : ''}{(cryptoChange * 100).toFixed(2)}%</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div className="mb-6 bg-gray-800 p-4 rounded text-white"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h3 className="border-b border-gray-600 mb-2 pb-1"&gt;交易操作&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex gap-2 mb-4"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;select</span></p>
+<p class="p1"><span class="s1">className="bg-gray-700 p-2 text-white text-sm rounded"</span></p>
+<p class="p1"><span class="s1">value={assetType}</span></p>
+<p class="p1"><span class="s1">onChange={e =&gt; setAssetType(e.target.value)}</span></p>
+<p class="p1"><span class="s1">&gt;</span></p>
+<p class="p1"><span class="s1">&lt;option value="stock"&gt;股票&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1">&lt;option value="crypto"&gt;加密币&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/select&gt;</span></p>
+<p class="p1"><span class="s1">&lt;input</span></p>
+<p class="p1"><span class="s1">type="number"</span></p>
+<p class="p1"><span class="s1">placeholder="数量"</span></p>
+<p class="p1"><span class="s1">className="bg-gray-700 p-2 text-white w-20 text-sm rounded"</span></p>
+<p class="p1"><span class="s1">value={amount}</span></p>
+<p class="p1"><span class="s1">onChange={e =&gt; setAmount(Math.max(1, parseInt(e.target.value) || 0))}</span></p>
+<p class="p1"><span class="s1">/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex gap-2"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; handleInvest('buy')} className="flex-1 bg-green-700 px-3 py-2 rounded hover:bg-green-600 disabled:opacity-50" disabled={cash &lt; amount * (assetType === 'stock' ? stockPrice : cryptoPrice)}&gt;买入&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; handleInvest('sell')} className="flex-1 bg-red-700 px-3 py-2 rounded hover:bg-red-600 disabled:opacity-50" disabled={portfolio[assetType] &lt; amount}&gt;卖出&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="mt-2 text-xs text-gray-400"&gt;</span></p>
+<p class="p1"><span class="s1">持有: 股票 {formatCurrency(stock)} 份 | 加密币 {formatCurrency(crypto)} 份</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div className="border-t border-gray-700 pt-4"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h3 className="text-white mb-2 flex justify-between items-center"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span&gt;NFT 藏品&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={mintNFT} className="text-xs bg-purple-600 text-white px-2 py-1 rounded disabled:opacity-50" disabled={cash &lt; 500}&gt;铸造新NFT (¥500)&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="grid grid-cols-3 gap-2"&gt;</span></p>
+<p class="p1"><span class="s1">{nfts.map(nft =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;div key={nft.id} className="bg-gray-800 p-2 rounded border border-purple-500/50 flex flex-col items-center"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="w-8 h-8 bg-gradient-to-tr from-purple-400 to-pink-500 rounded mb-1"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-xs text-white"&gt;Est. ¥{formatCurrency(nft.value)}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; sellNFT(nft.id, nft.value)} className="mt-1 text-[10px] bg-blue-600 text-white px-2 rounded"&gt;出售&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">{nfts.length === 0 &amp;&amp; &lt;span className="text-xs text-gray-500 col-span-3 text-center"&gt;暂无藏品&lt;/span&gt;}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">// ... (保留其他未修改的辅助组件)</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function DraggableIcon({ icon, onDragEnd, onClick }) {</span></p>
+<p class="p1"><span class="s1">const [pos, setPos] = useState({ x: icon.x, y: icon.y });</span></p>
+<p class="p1"><span class="s1">const [dragging, setDragging] = useState(false);</span></p>
+<p class="p1"><span class="s1">const offset = useRef({ x: 0, y: 0 });</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const handleMouseDown = (e) =&gt; {</span></p>
+<p class="p1"><span class="s1">offset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };</span></p>
+<p class="p1"><span class="s1">setDragging(true);</span></p>
+<p class="p1"><span class="s1">e.preventDefault();</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const handleMouseMove = (e) =&gt; {</span></p>
+<p class="p1"><span class="s1">if (dragging) {</span></p>
+<p class="p1"><span class="s1">setPos({ x: e.clientX - offset.current.x, y: e.clientY - offset.current.y });</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const handleMouseUp = () =&gt; {</span></p>
+<p class="p1"><span class="s1">if (dragging) {</span></p>
+<p class="p1"><span class="s1">setDragging(false);</span></p>
+<p class="p1"><span class="s1">onDragEnd(icon.id, pos.x, pos.y);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">useEffect(() =&gt; {</span></p>
+<p class="p1"><span class="s1">if (dragging) {</span></p>
+<p class="p1"><span class="s1">window.addEventListener('mousemove', handleMouseMove);</span></p>
+<p class="p1"><span class="s1">window.addEventListener('mouseup', handleMouseUp);</span></p>
+<p class="p1"><span class="s1">} else {</span></p>
+<p class="p1"><span class="s1">window.removeEventListener('mousemove', handleMouseMove);</span></p>
+<p class="p1"><span class="s1">window.removeEventListener('mouseup', handleMouseUp);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">return () =&gt; {</span></p>
+<p class="p1"><span class="s1">window.removeEventListener('mousemove', handleMouseMove);</span></p>
+<p class="p1"><span class="s1">window.removeEventListener('mouseup', handleMouseUp);</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p1"><span class="s1">}, [dragging]);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const icons = {</span></p>
+<p class="p1"><span class="s1">browser: &lt;Globe className="text-blue-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">chat: &lt;MessageCircle className="text-green-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">shop: &lt;ShoppingBag className="text-orange-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">food: &lt;Utensils className="text-yellow-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">hospital: &lt;Stethoscope className="text-red-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">study: &lt;GraduationCap className="text-purple-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">stonks: &lt;TrendingUp className="text-green-600"/&gt;,</span></p>
+<p class="p1"><span class="s1">finder: &lt;Square className="text-gray-500 fill-blue-400"/&gt;,</span></p>
+<p class="p1"><span class="s1">settings: &lt;Settings className="text-gray-600"/&gt;,</span></p>
+<p class="p1"><span class="s1">bank: &lt;DollarSign className="text-yellow-600"/&gt;</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const labels = {</span></p>
+<p class="p1"><span class="s1">browser: "Safari", chat: "K-Talk", shop: "Amazone", food: "饱了么",</span></p>
+<p class="p1"><span class="s1">hospital: "平安健康", study: "学习通", stonks: "Stonks", finder: "Finder", settings: "设置", bank: "Wallet"</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const clickStartRef = useRef(0);</span></p>
+<p class="p1"><span class="s1">const handleIconClick = (e) =&gt; {</span></p>
+<p class="p1"><span class="s1">if (Date.now() - clickStartRef.current &lt; 200) {</span></p>
+<p class="p1"><span class="s1">onClick();</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">e.stopPropagation();</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div</span></p>
+<p class="p1"><span class="s1">className="absolute flex flex-col items-center gap-1 w-20"</span></p>
+<p class="p1"><span class="s1">style={{ left: pos.x, top: pos.y, zIndex: dragging ? 100 : 1 }}</span></p>
+<p class="p1"><span class="s1">onMouseDown={(e) =&gt; {</span></p>
+<p class="p1"><span class="s1">clickStartRef.current = Date.now();</span></p>
+<p class="p1"><span class="s1">handleMouseDown(e);</span></p>
+<p class="p1"><span class="s1">}}</span></p>
+<p class="p1"><span class="s1">onClick={handleIconClick}</span></p>
+<p class="p1"><span class="s1">&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="w-14 h-14 bg-white/90 rounded-xl shadow-lg flex items-center justify-center text-3xl pointer-events-none"&gt;</span></p>
+<p class="p1"><span class="s1">{icons[icon.id]}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-xs text-white drop-shadow-md font-bold pointer-events-none bg-black/20 px-2 rounded-full"&gt;{labels[icon.id]}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function BrowserApp({ gameState, onPost, posts, inventory }) {</span></p>
+<p class="p1"><span class="s1">const [tab, setTab] = useState('home');</span></p>
+<p class="p1"><span class="s1">const [caption, setCaption] = useState('');</span></p>
+<p class="p1"><span class="s1">const [prompt, setPrompt] = useState('');</span></p>
+<p class="p1"><span class="s1">const [imageUrl, setImageUrl] = useState('');</span></p>
+<p class="p1"><span class="s1">const [imageSource, setImageSource] = useState('ai'); // 'ai', 'url', 'text'</span></p>
+<p class="p1"><span class="s1">const [selectedItem, setSelectedItem] = useState(null);</span></p>
+<p class="p1"><span class="s1">const [isPosting, setIsPosting] = useState(false);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const handleSubmit = async () =&gt; {</span></p>
+<p class="p1"><span class="s1">if (!caption &amp;&amp; imageSource === 'text') return;</span></p>
+<p class="p1"><span class="s1">if (imageSource === 'ai' &amp;&amp; !prompt) return;</span></p>
+<p class="p1"><span class="s1">if (imageSource === 'url' &amp;&amp; !imageUrl) return;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">setIsPosting(true);</span></p>
+<p class="p1"><span class="s1">await onPost(caption, prompt, imageUrl, imageSource, selectedItem);</span></p>
+<p class="p1"><span class="s1">setIsPosting(false);</span></p>
+<p class="p1"><span class="s1">setCaption(''); setPrompt(''); setImageUrl(''); setImageSource('ai'); setTab('home');</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const isImagePost = imageSource !== 'text';</span></p>
+<p class="p1"><span class="s1">const postButtonDisabled = isPosting || (imageSource === 'ai' &amp;&amp; !prompt) || (imageSource === 'url' &amp;&amp; !imageUrl) || !caption;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex flex-col h-full bg-gray-100"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="bg-white p-2 border-b flex justify-between items-center px-4 sticky top-0 z-10"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="font-bold text-pink-600"&gt;SweetGram&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-xs space-x-4"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="font-bold"&gt;{gameState.fans} 粉丝&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; setTab('post')} className="bg-pink-500 text-white px-3 py-1 rounded-full text-xs"&gt;+ 发帖&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex-1 overflow-y-auto"&gt;</span></p>
+<p class="p1"><span class="s1">{tab === 'post' ? (</span></p>
+<p class="p1"><span class="s1">&lt;div className="p-6 space-y-4"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h3 className="font-bold text-gray-700"&gt;发布新内容&lt;/h3&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;label className="text-xs font-bold text-gray-500 block mb-1"&gt;图片来源&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex gap-3"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; setImageSource('ai')} className={`px-3 py-1 text-sm rounded transition ${imageSource === 'ai' ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}&gt;AI 生成&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; setImageSource('url')} className={`px-3 py-1 text-sm rounded transition ${imageSource === 'url' ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}&gt;外部链接&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; setImageSource('text')} className={`px-3 py-1 text-sm rounded transition ${imageSource === 'text' ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}&gt;纯文字&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">{imageSource === 'ai' &amp;&amp; (</span></p>
+<p class="p1"><span class="s1">&lt;div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;label className="text-xs font-bold text-gray-500 block mb-1"&gt;画面描述 (Prompt)&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1">&lt;textarea className="w-full p-2 border rounded text-sm h-20" placeholder="例如：在卧室镜子前自拍..." value={prompt} onChange={e =&gt; setPrompt(e.target.value)}/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">)}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">{imageSource === 'url' &amp;&amp; (</span></p>
+<p class="p1"><span class="s1">&lt;div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;label className="text-xs font-bold text-gray-500 block mb-1"&gt;图片 URL (链接)&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1">&lt;input className="w-full p-2 border rounded text-sm" placeholder="例如: https://placehold.co/400x400" value={imageUrl} onChange={e =&gt; setImageUrl(e.target.value)}/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">)}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;label className="text-xs font-bold text-gray-500 block mb-1"&gt;配文&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1">&lt;input className="w-full p-2 border rounded text-sm" placeholder="写点什么..." value={caption} onChange={e =&gt; setCaption(e.target.value)}/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">{isImagePost &amp;&amp; (</span></p>
+<p class="p1"><span class="s1">&lt;div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;label className="text-xs font-bold text-gray-500 block mb-1"&gt;穿搭&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex gap-2 overflow-x-auto pb-2"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; setSelectedItem(null)} className={`p-2 border rounded text-xs min-w-[60px] ${!selectedItem?'bg-blue-100':''}`}&gt;无&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">{inventory.filter(i=&gt;['clothes','props'].includes(i.category)).map(item=&gt;(</span></p>
+<p class="p1"><span class="s1">&lt;button key={item.id} onClick={()=&gt;setSelectedItem(item)} className={`p-2 border rounded text-xs min-w-[60px] ${selectedItem?.id===item.id?'bg-blue-100':''}`}&gt;{item.name}&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">)}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;button onClick={handleSubmit} disabled={postButtonDisabled} className="w-full bg-pink-500 text-white py-2 rounded font-bold flex justify-center items-center gap-2"&gt;</span></p>
+<p class="p1"><span class="s1">{isPosting ? &lt;&gt;&lt;Loader className="animate-spin" size={16}/&gt; {imageSource === 'ai' ? '生成并发布中...' : '发布中...'}&lt;/&gt; : `发布 (${imageSource === 'text' ? '纯文字' : '带图片'})`}</span></p>
+<p class="p1"><span class="s1">&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; setTab('home')} className="w-full text-center text-xs text-gray-500 mt-2"&gt;取消&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">) : (</span></p>
+<p class="p1"><span class="s1">&lt;div className="space-y-4 p-4"&gt;</span></p>
+<p class="p1"><span class="s1">{posts.map(post =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;div key={post.id} className="bg-white rounded-lg border shadow-sm overflow-hidden"&gt;</span></p>
+<p class="p1"><span class="s1">{post.imgSrc &amp;&amp; post.imgSrc !== 'TEXT' &amp;&amp; (</span></p>
+<p class="p1"><span class="s1">&lt;div className="bg-black min-h-[200px] flex items-center justify-center"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;img src={post.imgSrc} alt="Generated" className="w-full h-auto object-cover" /&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">)}</span></p>
+<p class="p1"><span class="s1">&lt;div className="p-3"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex items-center gap-2 mb-2 text-red-500"&gt;&lt;Heart size={16} fill="currentColor"/&gt; &lt;span className="text-sm font-bold"&gt;{post.likes}&lt;/span&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-sm mb-2"&gt;&lt;span className="font-bold mr-2"&gt;Kitty_01&lt;/span&gt;{post.desc}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">{post.comments &amp;&amp; &lt;div className="bg-gray-50 p-2 rounded text-xs space-y-1"&gt;{post.comments.map((c, i) =&gt; &lt;div key={i}&gt;&lt;span className="font-bold text-gray-600"&gt;user_{i}:&lt;/span&gt; {c}&lt;/div&gt;)}&lt;/div&gt;}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">{posts.length === 0 &amp;&amp; &lt;div className="col-span-4 text-center text-gray-400 mt-10"&gt;暂无帖文，快去发帖吧&lt;/div&gt;}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">)}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function FinderApp({ gallery }) {</span></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="h-full bg-white flex flex-col"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="bg-gray-100 p-2 border-b text-sm font-bold flex gap-2"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-blue-500"&gt;照片&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-gray-400"&gt;文档&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex-1 p-4 overflow-y-auto grid grid-cols-4 gap-4 content-start"&gt;</span></p>
+<p class="p1"><span class="s1">{gallery.map(img =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;div key={img.id} className="aspect-square bg-gray-200 rounded overflow-hidden relative group border"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;img src={img.src} alt="Saved" className="w-full h-full object-cover" /&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] p-1 opacity-0 group-hover:opacity-100 truncate"&gt;</span></p>
+<p class="p1"><span class="s1">{img.date}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">{gallery.length === 0 &amp;&amp; &lt;div className="col-span-4 text-center text-gray-400 mt-10"&gt;暂无照片，去发帖生成吧&lt;/div&gt;}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="p-2 border-t text-xs text-gray-500 text-center"&gt;{gallery.length} 个项目&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function SettingsApp({ current, onChange, onReset }) {</span></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="h-full bg-gray-50 p-6"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h2 className="text-xl font-bold mb-6"&gt;系统偏好设置&lt;/h2&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div className="mb-6"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h3 className="text-sm font-bold text-gray-500 mb-3 uppercase"&gt;桌面壁纸&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="grid grid-cols-2 gap-4"&gt;</span></p>
+<p class="p1"><span class="s1">{WALLPAPERS.map(wp =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;button</span></p>
+<p class="p1"><span class="s1">key={wp.id}</span></p>
+<p class="p1"><span class="s1">onClick={() =&gt; onChange({ wallpaper: wp.id })}</span></p>
+<p class="p1"><span class="s1">className={`h-20 rounded-lg shadow-sm border-2 ${wp.style} ${current.wallpaper === wp.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-transparent'}`}</span></p>
+<p class="p1"><span class="s1">&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="bg-white/80 px-2 py-1 text-xs rounded-full"&gt;{wp.name}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div className="border-t pt-6"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;h3 className="text-sm font-bold text-gray-500 mb-3 uppercase"&gt;高级选项&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button</span></p>
+<p class="p1"><span class="s1">onClick={onReset}</span></p>
+<p class="p1"><span class="s1">className="bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600 w-full"</span></p>
+<p class="p1"><span class="s1">&gt;</span></p>
+<p class="p1"><span class="s1">重置所有游戏数据 (慎用)</span></p>
+<p class="p1"><span class="s1">&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function ShopApp({ currentCash, onBuy, inventory }) {</span></p>
+<p class="p1"><span class="s1">const [category, setCategory] = useState('clothes');</span></p>
+<p class="p1"><span class="s1">const filteredItems = SHOP_ITEMS.filter(i =&gt; i.category === category);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex flex-col h-full bg-gray-50"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="p-4 bg-orange-400 text-white shadow-md flex justify-between items-center"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="font-bold text-lg flex items-center gap-2"&gt;&lt;ShoppingBag/&gt; Amazone&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="font-mono bg-orange-600 px-2 py-1 rounded"&gt;¥{(currentCash).toFixed(2)}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex border-b bg-white text-sm"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; setCategory('clothes')} className={`flex-1 p-2 ${category==='clothes'?'text-orange-500 border-b-2 border-orange-500':''}`}&gt;服饰&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; setCategory('props')} className={`flex-1 p-2 ${category==='props'?'text-orange-500 border-b-2 border-orange-500':''}`}&gt;道具&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={() =&gt; setCategory('electronics')} className={`flex-1 p-2 ${category==='electronics'?'text-orange-500 border-b-2 border-orange-500':''}`}&gt;电子&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-4"&gt;</span></p>
+<p class="p1"><span class="s1">{filteredItems.map(item =&gt; {</span></p>
+<p class="p1"><span class="s1">const owned = inventory.some(i =&gt; i.id === item.id);</span></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div key={item.id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 flex flex-col"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="h-20 bg-gray-100 mb-2 rounded flex items-center justify-center text-3xl"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;Package className="text-gray-400"/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="font-bold text-sm"&gt;{item.name}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="text-xs text-gray-500 mb-2 h-8 leading-tight"&gt;{item.desc}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="mt-auto flex justify-between items-center"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="font-bold text-orange-600"&gt;¥{item.price}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button</span></p>
+<p class="p1"><span class="s1">onClick={() =&gt; onBuy(item)}</span></p>
+<p class="p1"><span class="s1">disabled={owned || currentCash &lt; item.price}</span></p>
+<p class="p1"><span class="s1">className={`px-3 py-1 text-xs rounded text-white ${owned || currentCash &lt; item.price ? 'bg-gray-400 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600'}`}</span></p>
+<p class="p1"><span class="s1">&gt;</span></p>
+<p class="p1"><span class="s1">{owned ? '已拥有' : '购买'}</span></p>
+<p class="p1"><span class="s1">&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">})}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function Window({ children, config, onClose }) {</span></p>
+<p class="p1"><span class="s1">if (!config.isOpen) return null;</span></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div</span></p>
+<p class="p1"><span class="s1">className="absolute bg-white rounded-lg shadow-2xl border border-gray-300 overflow-hidden flex flex-col"</span></p>
+<p class="p1"><span class="s1">style={{</span></p>
+<p class="p1"><span class="s1">width: '600px', height: '450px',</span></p>
+<p class="p1"><span class="s1">left: '50%', top: '50%', transform: 'translate(-50%, -50%)',</span></p>
+<p class="p1"><span class="s1">zIndex: config.z</span></p>
+<p class="p1"><span class="s1">}}</span></p>
+<p class="p1"><span class="s1">&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="h-8 bg-gray-100 border-b flex items-center px-3 justify-between"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex gap-2"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;button onClick={onClose} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600"/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="w-3 h-3 rounded-full bg-yellow-500"/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="w-3 h-3 rounded-full bg-green-500"/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-xs font-bold text-gray-600"&gt;{config.title}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="w-10"/&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex-1 overflow-hidden relative"&gt;</span></p>
+<p class="p1"><span class="s1">{children}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function MenuBar({ gameState, currentCash }) {</span></p>
+<p class="p1"><span class="s1">const formatTime = (h, m) =&gt; `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;</span></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="h-8 bg-white/90 backdrop-blur border-b flex items-center justify-between px-4 text-xs fixed top-0 w-full z-[1000] font-mono"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="font-bold text-lg"&gt;PixelOS&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div className="flex gap-4"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-red-500 flex items-center gap-1"&gt;&lt;Heart size={12}/&gt; {Math.floor(gameState.health)}%&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-blue-500 flex items-center gap-1"&gt;&lt;Cpu size={12}/&gt; San: {Math.floor(gameState.sanity)}%&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-purple-500 flex items-center gap-1"&gt;&lt;BookOpen size={12}/&gt; GPA: {Math.floor(gameState.academics)}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span className="text-green-600 font-bold"&gt;¥{(currentCash).toFixed(1)}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;span&gt;Day {gameState.day} {formatTime(gameState.hour, gameState.minute)}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function Dock({ windows, setWindows }) {</span></p>
+<p class="p1"><span class="s1">const icons = {</span></p>
+<p class="p1"><span class="s1">browser: &lt;Globe className="text-blue-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">chat: &lt;MessageCircle className="text-green-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">shop: &lt;ShoppingBag className="text-orange-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">bank: &lt;DollarSign className="text-yellow-600"/&gt;,</span></p>
+<p class="p1"><span class="s1">finder: &lt;Square className="text-gray-500 fill-blue-400"/&gt;,</span></p>
+<p class="p1"><span class="s1">food: &lt;Utensils className="text-yellow-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">hospital: &lt;Stethoscope className="text-red-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">study: &lt;GraduationCap className="text-purple-500"/&gt;,</span></p>
+<p class="p1"><span class="s1">stonks: &lt;TrendingUp className="text-green-600"/&gt;,</span></p>
+<p class="p1"><span class="s1">settings: &lt;Settings className="text-gray-600"/&gt;</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">return (</span></p>
+<p class="p1"><span class="s1">&lt;div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/70 backdrop-blur rounded-2xl p-2 flex gap-4 shadow-xl pointer-events-auto"&gt;</span></p>
+<p class="p1"><span class="s1">{Object.entries(windows).map(([key, win]) =&gt; (</span></p>
+<p class="p1"><span class="s1">&lt;button</span></p>
+<p class="p1"><span class="s1">key={key}</span></p>
+<p class="p1"><span class="s1">onClick={() =&gt; setWindows(p =&gt; ({...p, [key]: {...p[key], isOpen: true, z: Date.now()}}))}</span></p>
+<p class="p1"><span class="s1">className="w-12 h-12 bg-white rounded-xl flex items-center justify-center hover:-translate-y-2 transition-transform shadow-sm relative group"</span></p>
+<p class="p1"><span class="s1">&gt;</span></p>
+<p class="p1"><span class="s1">{icons[key]}</span></p>
+<p class="p1"><span class="s1">{win.isOpen &amp;&amp; &lt;div className="absolute -bottom-1 w-1 h-1 bg-gray-500 rounded-full"/&gt;}</span></p>
+<p class="p1"><span class="s1">&lt;div className="absolute -top-10 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"&gt;</span></p>
+<p class="p1"><span class="s1">{win.title}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">))}</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+</body>
+</html>
